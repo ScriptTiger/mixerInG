@@ -1,7 +1,7 @@
 [![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://docs.google.com/forms/d/e/1FAIpQLSfBEe5B_zo69OBk19l3hzvBmz3cOV6ol1ufjh0ER1q3-xd2Rg/viewform)
 
 # Mixer in G
-Mixer in G is a PCM audio stream mixer written in pure Go using the go-audio framework and does not require binding to non-native libraries, such as SoX or FFmpeg, as other mixers do.
+Mixer in G is a PCM audio stream mixer written in pure Go using the [go-audio](https://github.com/go-audio) framework and does not require binding to non-native libraries, such as SoX or FFmpeg, as other mixers do.
 
 To import Mixer in G into your project:  
 `go get github.com/ScriptTiger/mixerInG`  
