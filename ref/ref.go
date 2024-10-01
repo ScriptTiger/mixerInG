@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// Mix files and write mix to output
-	err := mixerInG.MixWavFiles(files, wavOutName)
+	err := mixerInG.MixWavFiles(files, wavOutName, false)
 	if err != nil {panic(err)}
 
 }

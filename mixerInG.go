@@ -9,17 +9,17 @@ import (
 )
 
 // Function to sum buffers
-func SumPCMFloatBuffers(trackBufDst, trackBufSrc *audio.FloatBuffer, bufferSize int) {
+func SumFloatBuffers(trackBufDst, trackBufSrc *audio.FloatBuffer, bufferSize int) {
 	for i := 0; i < bufferSize; i++ {trackBufDst.Data[i] = trackBufDst.Data[i]+trackBufSrc.Data[i]}
 }
 
-// Function to adjust gain on a buffer after mixing
-func GainStagePCMFloatBuffer(trackBufDst *audio.FloatBuffer, numTracks float64, bufferSize int) {
+// Function to attenuate linearly to prevent clipping in real-time without knowing/using true peak, RMS, LUFS, etc.
+func attenuateFloatBuffer(trackBufDst *audio.FloatBuffer, numTracks float64, bufferSize int) {
 	for i := 0; i < bufferSize; i++ {trackBufDst.Data[i] = trackBufDst.Data[i]/numTracks}
 }
 
 // Function to read wav decoders into buffers to be mixed and write mix to output
-func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File) (error) {
+func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File, attenuate bool) (error) {
 
 	var (
 		bufferSize int
@@ -77,11 +77,11 @@ func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File) (error) {
 			} else {
 				bufferSize, err = trackDec.PCMBuffer(trackBufSrcInt)
 				if bufferSize == 0 || err != nil {break}
-				SumPCMFloatBuffers(trackBufDstFloat, trackBufSrcInt.AsFloatBuffer(), bufferSize)
+				SumFloatBuffers(trackBufDstFloat, trackBufSrcInt.AsFloatBuffer(), bufferSize)
 			}
 		}
 		if bufferSize == 0 || err != nil {break}
-		GainStagePCMFloatBuffer(trackBufDstFloat, float64(len(trackDecs)), bufferSize)
+		if attenuate {attenuateFloatBuffer(trackBufDstFloat, float64(len(trackDecs)), bufferSize)}
 		wavEnc.Write(trackBufDstFloat.AsIntBuffer())
 	}
 
@@ -90,7 +90,7 @@ func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File) (error) {
 }
 
 // Function to mix wav files and write mix to output
-func MixWavFiles(files []*string, outWavName *string) (error) {
+func MixWavFiles(files []*string, outWavName *string, attenuate bool) (error) {
 
 	// Initialize trackDecs to number of tracks
 	trackDecs := make([]*wav.Decoder, len(files))
@@ -114,7 +114,7 @@ func MixWavFiles(files []*string, outWavName *string) (error) {
 	}
 
 	// Mix decoders
-	err = MixWavDecoders(trackDecs, wavOut)
+	err = MixWavDecoders(trackDecs, wavOut, attenuate)
 	if err != nil {return err}
 
 	return nil
