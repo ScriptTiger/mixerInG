@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ScriptTiger/mixerInG"
@@ -12,7 +13,9 @@ func help(err int) {
 	os.Stdout.WriteString(
 		"Usage: mixerInG [options...]\n"+
 		" -i <file>      Input WAV file (must be used for each input, for at least 2 inputs)\n"+
-		" -o <file>      Destination WAV file\n",
+		" -o <file>      Destination WAV file of mix\n"+
+		" -b <number>    Bit depth of mix WAV file (16|24|32)\n",
+
 	)
 	os.Exit(err)
 }
@@ -22,10 +25,12 @@ func main() {
 	// Ensure valid number of arguments
 	if len(os.Args) < 4 {help(1)}
 
-	// Declare argument pointers
+	// Declare argument variables, pointers, and other common variables
 	var (
 		files []*string
 		wavOutName *string
+		bitDepth int
+		err error
 	)
 
 	// Push arguments to pointers
@@ -41,14 +46,23 @@ func main() {
 					i++
 					wavOutName = &os.Args[i]
 					continue
+				case "b":
+					if bitDepth != 0 {help(3)}
+					i++
+					bitDepth, err = strconv.Atoi(os.Args[i])
+					if err != nil ||
+					(bitDepth != 16 &&
+					bitDepth != 24 &&
+					bitDepth != 32) {help(4)}
+					continue
 				default:
-					help(3)
+					help(5)
 			}
-		} else {help(4)}
+		} else {help(6)}
 	}
 
 	// Ensure at least 2 inputs
-	if len(files) < 2 {help(4)}
+	if len(files) < 2 {help(7)}
 
 	// Set default output as standard output if no output given as argument
 	if wavOutName == nil {
@@ -56,8 +70,12 @@ func main() {
 		*wavOutName = "-"
 	}
 
+	// Set default bit depth of mix if none specified
+	if bitDepth == 0 {bitDepth = 24}
+
 	// Mix files and write mix to output
-	err := mixerInG.MixWavFiles(files, wavOutName, false)
-	if err != nil {panic(err)}
+	if *wavOutName != "-" {os.Stdout.WriteString("Writing mix to "+*wavOutName+"...\n")}
+	err = mixerInG.MixWavFiles(files, wavOutName, bitDepth, false)
+	if err != nil {os.Stdout.WriteString(err.Error()+"\n")}
 
 }

@@ -2,11 +2,39 @@ package mixerInG
 
 import (
 	"errors"
+	"math"
 	"os"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 )
+
+// Structure to hold information for a track
+type TrackInfo struct {
+	wavDec *wav.Decoder
+	bitDepth int
+	bufferSize int
+	intBuffer *audio.IntBuffer
+	floatBuffer *audio.FloatBuffer
+}
+
+// Function to read PCM data from a trackInfo wav decoder into its int PCM buffer
+func (i *TrackInfo) ReadWavToBuffer() {
+	var err error
+	i.bufferSize, err = i.wavDec.PCMBuffer(i.intBuffer)
+	if i.bufferSize == 0 || err != nil {return}
+	i.floatBuffer = i.intBuffer.AsFloatBuffer()
+}
+
+// Function to create a new trackInfo
+func NewTrackInfo(wavDec *wav.Decoder, bitDepth, bufferCap int) (newTrack *TrackInfo) {
+	return &TrackInfo{
+		wavDec: wavDec,
+		bitDepth: bitDepth,
+		intBuffer: &audio.IntBuffer{Format: wavDec.Format(), Data: make([]int, bufferCap)},
+		floatBuffer: &audio.FloatBuffer{Format: wavDec.Format(), Data: make([]float64, bufferCap)},
+	}
+}
 
 // Function to sum buffers
 func SumFloatBuffers(trackBufDst, trackBufSrc *audio.FloatBuffer, bufferSize int) {
@@ -14,75 +42,71 @@ func SumFloatBuffers(trackBufDst, trackBufSrc *audio.FloatBuffer, bufferSize int
 }
 
 // Function to attenuate linearly to prevent clipping in real-time without knowing/using true peak, RMS, LUFS, etc.
-func attenuateFloatBuffer(trackBufDst *audio.FloatBuffer, numTracks float64, bufferSize int) {
-	for i := 0; i < bufferSize; i++ {trackBufDst.Data[i] = trackBufDst.Data[i]/numTracks}
+func AttenuateFloatBuffer(trackBufDst *audio.FloatBuffer, numTracks, bufferSize int) {
+	for i := 0; i < bufferSize; i++ {trackBufDst.Data[i] = trackBufDst.Data[i]/float64(numTracks)}
+}
+
+// Function to scale input bit depth to output bit depth
+func ScaleFloatBuffer(trackBufDst *audio.FloatBuffer, srcBitDepth, dstBitDepth, bufferSize int) {
+	for i := 0; i < bufferSize; i++ {trackBufDst.Data[i] = trackBufDst.Data[i]*math.Pow(2, float64(dstBitDepth-srcBitDepth))}
 }
 
 // Function to read wav decoders into buffers to be mixed and write mix to output
-func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File, attenuate bool) (error) {
+func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, attenuate bool) (error) {
 
 	var (
-		bufferSize int
 		format *audio.Format
 		sampleRate uint32
-		bitDepth uint16
 		numChans uint16
-		duration float64
-		err error
 	)
 
-	// Buffer capacity
+	numTracks := len(wavDecs)
+	index := make([]*TrackInfo, numTracks)
 	bufferCap := 8000
 
-	// Validate tracks and populate format properties
-	for i, trackDec := range trackDecs {
+	// Validate tracks, populate index and convenience variables
+	for i, wavDec := range wavDecs {
 
-		if !trackDec.IsValidFile() {return errors.New("Invalid file")}
+		if !wavDec.IsValidFile() {return errors.New("Invalid file")}
 
-		durationTime, _ := trackDec.Duration()
+		index[i] = NewTrackInfo(wavDec, int(wavDec.BitDepth), bufferCap)
+
 		if i == 0 {
-			format = trackDec.Format()
-			sampleRate = trackDec.SampleRate
-			numChans = trackDec.NumChans
-			bitDepth = trackDec.BitDepth
-			duration = durationTime.Seconds()
-		} else if sampleRate != trackDec.SampleRate {return errors.New("Sample rate mismatch")
-		} else if numChans != trackDec.NumChans {return errors.New("Channel layout mismatch")
-		} else if bitDepth != trackDec.BitDepth {return errors.New("Bit depth mismatch")
-		} else if duration != durationTime.Seconds() {return errors.New("Duration mismatch")}
+			format = wavDec.Format()
+			sampleRate = wavDec.SampleRate
+			numChans = wavDec.NumChans
+		} else if sampleRate != wavDec.SampleRate {return errors.New("Sample rate mismatch")
+		} else if numChans != wavDec.NumChans {return errors.New("Channel layout mismatch")}
 	}
 
 	// Initialize wav encoder
 	wavEnc := wav.NewEncoder(
 		wavOut,
 		int(sampleRate),
-		int(bitDepth),
+		bitDepth,
 		int(numChans),
 		1,
 	)
 	defer wavEnc.Close()
 
-	// Initialize buffers
-	trackBufDstInt := &audio.IntBuffer{Format: format, Data: make([]int, bufferCap)}
-	trackBufSrcInt := &audio.IntBuffer{Format: format, Data: make([]int, bufferCap)}
-	trackBufDstFloat := &audio.FloatBuffer{Format: format, Data: make([]float64, bufferCap)}
+	// Initialize mix buffer
+	mixFloatBuffer := &audio.FloatBuffer{Format: format, Data: make([]float64, bufferCap)}
 
-	// Systematically load buffers and sum track 0 buffer with all other track buffers, adjust gain, and write to output
+	// Systematically load buffers, scale if needed, sum all tracks to mix buffer, adjust gain if requested, and write to output
 	for {
-		for i, trackDec := range trackDecs {
-			if i == 0 {
-				bufferSize, err = trackDec.PCMBuffer(trackBufDstInt)
-				if bufferSize == 0 || err != nil {break}
-				trackBufDstFloat = trackBufDstInt.AsFloatBuffer()
-			} else {
-				bufferSize, err = trackDec.PCMBuffer(trackBufSrcInt)
-				if bufferSize == 0 || err != nil {break}
-				SumFloatBuffers(trackBufDstFloat, trackBufSrcInt.AsFloatBuffer(), bufferSize)
+		var bufferSize int
+		for _, track := range index {
+			track.ReadWavToBuffer()
+			if track.bufferSize != 0 {
+				if track.bitDepth != bitDepth {ScaleFloatBuffer(track.floatBuffer, track.bitDepth, bitDepth, track.bufferSize)}
+				if bufferSize == 0 {mixFloatBuffer = track.floatBuffer
+				} else {SumFloatBuffers(mixFloatBuffer, track.floatBuffer, track.bufferSize)}
+				if track.bufferSize > bufferSize {bufferSize = track.bufferSize}
 			}
 		}
-		if bufferSize == 0 || err != nil {break}
-		if attenuate {attenuateFloatBuffer(trackBufDstFloat, float64(len(trackDecs)), bufferSize)}
-		wavEnc.Write(trackBufDstFloat.AsIntBuffer())
+		if bufferSize == 0 {break}
+		if attenuate {AttenuateFloatBuffer(mixFloatBuffer, numTracks, bufferSize)}
+		wavEnc.Write(mixFloatBuffer.AsIntBuffer())
 	}
 
 	return nil
@@ -90,17 +114,17 @@ func MixWavDecoders(trackDecs []*wav.Decoder, wavOut *os.File, attenuate bool) (
 }
 
 // Function to mix wav files and write mix to output
-func MixWavFiles(files []*string, outWavName *string, attenuate bool) (error) {
+func MixWavFiles(files []*string, outWavName *string, bitDepth int, attenuate bool) (error) {
 
-	// Initialize trackDecs to number of tracks
-	trackDecs := make([]*wav.Decoder, len(files))
+	// Initialize wavDecs to number of tracks
+	wavDecs := make([]*wav.Decoder, len(files))
 
 	// Initialize slice for wave decoders
 	for i, file := range files {
 		wavFile, err := os.Open(*file)
 		if err != nil {return err}
 		defer wavFile.Close()
-		trackDecs[i] = wav.NewDecoder(wavFile)
+		wavDecs[i] = wav.NewDecoder(wavFile)
 	}
 
 	// Initialize output
@@ -114,7 +138,7 @@ func MixWavFiles(files []*string, outWavName *string, attenuate bool) (error) {
 	}
 
 	// Mix decoders
-	err = MixWavDecoders(trackDecs, wavOut, attenuate)
+	err = MixWavDecoders(wavDecs, wavOut, bitDepth, attenuate)
 	if err != nil {return err}
 
 	return nil

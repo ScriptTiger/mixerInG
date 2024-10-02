@@ -15,9 +15,10 @@ Usage: `mixerInG [options...]`
 Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
  `-i <file>`           | Input WAV file (must be used for each input, for at least 2 inputs)
- `-o <file>`           | Destination WAV file
+ `-o <file>`           | Destination WAV file of mix
+ `-b <number>`         | Bit depth of mix WAV file (16\|24\|32)
 
-If no output file is given, or `-` is given, the mix is written to standard output and can be piped into VLC or other compatible media applications.
+If no output file is given, or `-` is given, the mix is written to standard output with a bit depth of 24 and can be piped into VLC or other compatible media applications.
 
 # More About ScriptTiger
 
