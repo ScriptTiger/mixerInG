@@ -33,7 +33,7 @@ func main() {
 		err error
 	)
 
-	// Push arguments to pointers
+	// Push arguments to pointers or set appropriate variables
 	for i := 1; i < len(os.Args); i++ {
 		if strings.HasPrefix(os.Args[i], "-") {
 			switch strings.TrimPrefix(os.Args[i], "-") {
@@ -55,14 +55,22 @@ func main() {
 					bitDepth != 24 &&
 					bitDepth != 32) {help(4)}
 					continue
+				case "":
+					if wavOutName != nil {help(5)}
+					wavOutName = &os.Args[i]
+					continue
 				default:
-					help(5)
+					help(6)
 			}
-		} else {help(6)}
+		} else {
+			if wavOutName != nil {help(7)}
+			wavOutName = &os.Args[i]
+			continue
+		}
 	}
 
 	// Ensure at least 2 inputs
-	if len(files) < 2 {help(7)}
+	if len(files) < 2 {help(8)}
 
 	// Set default output as standard output if no output given as argument
 	if wavOutName == nil {
