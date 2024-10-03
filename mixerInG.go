@@ -38,6 +38,10 @@ func ReadWavsToBuffers(wavDecs []*wav.Decoder, tracks []*TrackInfo) (mixBufferSi
 		}
 		track.bufferSize, err = wavDecs[i].PCMBuffer(track.intBuffer)
 		if track.bufferSize == 0 || err != nil {continue}
+		if track.bufferSize < cap(track.intBuffer.Data) {
+			track.intBuffer.Data = track.intBuffer.Data[:track.bufferSize]
+			track.floatBuffer.Data = track.floatBuffer.Data[:track.bufferSize]
+		}
 		track.floatBuffer = track.intBuffer.AsFloatBuffer()
 		if track.bufferSize > mixBufferSize {mixBufferSize = track.bufferSize}
 	}
@@ -95,6 +99,10 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 	for i, wavDec := range wavDecs {
 
 		if !wavDec.IsValidFile() {return errors.New("Invalid file")}
+
+		if wavDec.WavAudioFormat == 3 {return errors.New("IEEE float is not currently supported")}
+		if wavDec.WavAudioFormat == 6 {return errors.New("A-law is not currently supported")}
+		if wavDec.WavAudioFormat == 7 {return errors.New("µ-law is not currently supported")}
 
 		if i == 0 {
 			format = wavDec.Format()
