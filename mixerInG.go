@@ -87,8 +87,8 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 
 	var (
 		format *audio.Format
-		sampleRate uint32
-		numChans uint16
+		sampleRate int
+		numChans int
 	)
 
 	numTracks := len(wavDecs)
@@ -103,13 +103,14 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 		if wavDec.WavAudioFormat == 3 {return errors.New("IEEE float is not currently supported")}
 		if wavDec.WavAudioFormat == 6 {return errors.New("A-law is not currently supported")}
 		if wavDec.WavAudioFormat == 7 {return errors.New("µ-law is not currently supported")}
+		if wavDec.WavAudioFormat != 1 && wavDec.WavAudioFormat != 0xFFFE {return errors.New("Only PCM is currently supported")}
 
 		if i == 0 {
 			format = wavDec.Format()
-			sampleRate = wavDec.SampleRate
-			numChans = wavDec.NumChans
-		} else if sampleRate != wavDec.SampleRate {return errors.New("Sample rate mismatch")
-		} else if numChans != wavDec.NumChans {return errors.New("Channel layout mismatch")}
+			sampleRate = int(wavDec.SampleRate)
+			numChans = int(wavDec.NumChans)
+		} else if sampleRate != int(wavDec.SampleRate) {return errors.New("Sample rate mismatch")
+		} else if numChans != int(wavDec.NumChans) {return errors.New("Channel layout mismatch")}
 
 		index[i] = NewTrackInfo(format, int(wavDec.BitDepth), bufferCap)
 	}
@@ -117,9 +118,9 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 	// Initialize wav encoder
 	wavEnc := wav.NewEncoder(
 		wavOut,
-		int(sampleRate),
+		sampleRate,
 		bitDepth,
-		int(numChans),
+		numChans,
 		1,
 	)
 	defer wavEnc.Close()
