@@ -13,7 +13,7 @@ Dev package docs:
 https://pkg.go.dev/github.com/ScriptTiger/mixerInG
 
 Reference implementation:  
-https://github.com/ScriptTiger/mixerInG/tree/main/ref/ref.go
+https://github.com/ScriptTiger/mixerInG/blob/main/ref/ref.go
 
 # Reference Implementation
 
