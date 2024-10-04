@@ -5,7 +5,14 @@ Mixer in G is a PCM audio stream mixer package written in pure Go using the [go-
 
 To import Mixer in G into your project:  
 `go get github.com/ScriptTiger/mixerInG`  
-Then just `import "github.com/ScriptTiger/mixerInG"` and get started with using its functions. Please refer to the reference implementation for more details and ideas on how to integrate Mixer in G into your project.  
+Then just `import "github.com/ScriptTiger/mixerInG"` and get started with using its functions.
+
+Please refer to the dev package docs and reference implementation for more details and ideas on how to integrate Mixer in G into your project.  
+
+Dev package docs:  
+https://pkg.go.dev/github.com/ScriptTiger/mixerInG
+
+Reference implementation:  
 https://github.com/ScriptTiger/mixerInG/tree/main/ref
 
 # Reference Implementation
