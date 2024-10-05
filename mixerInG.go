@@ -11,29 +11,29 @@ import (
 
 // Structure to hold information for a track
 type TrackInfo struct {
-	bitDepth int
-	bufferSize int
-	intBuffer *audio.IntBuffer
-	floatBuffer *audio.FloatBuffer
+	BitDepth int
+	BufferSize int
+	IntBuffer *audio.IntBuffer
+	FloatBuffer *audio.FloatBuffer
 }
 
 // Function to create a new TrackInfo
 func NewTrack(format *audio.Format, bitDepth, bufferCap int) (newTrack *TrackInfo) {
 	return &TrackInfo{
-		bitDepth: bitDepth,
-		bufferSize: -1,
-		intBuffer: &audio.IntBuffer{Format: format, Data: make([]int, bufferCap)},
-		floatBuffer: &audio.FloatBuffer{Format: format, Data: make([]float64, bufferCap)},
+		BitDepth: bitDepth,
+		BufferSize: -1,
+		IntBuffer: &audio.IntBuffer{Format: format, Data: make([]int, bufferCap)},
+		FloatBuffer: &audio.FloatBuffer{Format: format, Data: make([]float64, bufferCap)},
 	}
 }
 
 // Function to create a new TrackInfo from provided buffers
 func NewTrackFromBuffers(intBuffer *audio.IntBuffer, floatBuffer *audio.FloatBuffer, bitDepth int) (newTrack *TrackInfo) {
 	return &TrackInfo{
-		bitDepth: bitDepth,
-		bufferSize: -1,
-		intBuffer: intBuffer,
-		floatBuffer: floatBuffer,
+		BitDepth: bitDepth,
+		BufferSize: -1,
+		IntBuffer: intBuffer,
+		FloatBuffer: floatBuffer,
 	}
 }
 
@@ -49,17 +49,17 @@ func Mix(mixTrack *audio.FloatBuffer, sourceTracks []*TrackInfo, bitDepth int, a
 // Function to sum TrackInfo float buffers to a mix float buffer and return buffer size of mix, equal to length of longest buffer
 func SumFloatBuffers(mixTrack *audio.FloatBuffer, sourceTracks []*TrackInfo) (mixBufferSize int) {
 	for _, sourceTrack := range sourceTracks {
-		if sourceTrack.bufferSize == 0 {continue}
+		if sourceTrack.BufferSize == 0 {continue}
 		if mixBufferSize == 0 {
 			for m, _ := range mixTrack.Data {mixTrack.Data[m] = 0}
-			for s, data := range sourceTrack.floatBuffer.Data {mixTrack.Data[s] = data}
-			mixBufferSize = sourceTrack.bufferSize
+			for s, data := range sourceTrack.FloatBuffer.Data {mixTrack.Data[s] = data}
+			mixBufferSize = sourceTrack.BufferSize
 			continue
 		}
-		for s := 0; s < sourceTrack.bufferSize; s++ {
-			mixTrack.Data[s] = mixTrack.Data[s]+sourceTrack.floatBuffer.Data[s]
+		for s := 0; s < sourceTrack.BufferSize; s++ {
+			mixTrack.Data[s] = mixTrack.Data[s]+sourceTrack.FloatBuffer.Data[s]
 		}
-		if sourceTrack.bufferSize > mixBufferSize {mixBufferSize = sourceTrack.bufferSize}
+		if sourceTrack.BufferSize > mixBufferSize {mixBufferSize = sourceTrack.BufferSize}
 	}
 	return mixBufferSize
 }
@@ -72,9 +72,9 @@ func AttenuateFloatBuffer(mixTrack *audio.FloatBuffer, numTracks, bufferSize int
 // Function to scale input bit depth to output bit depth
 func ScaleFloatBuffers(tracks []*TrackInfo, bitDepth int) {
 	for _, track := range tracks {
-		if track.bufferSize != 0 && track.bitDepth != bitDepth {
-			for i := 0; i < track.bufferSize; i++ {
-				track.floatBuffer.Data[i] = track.floatBuffer.Data[i]*math.Pow(2, float64(bitDepth-track.bitDepth))
+		if track.BufferSize != 0 && track.BitDepth != bitDepth {
+			for i := 0; i < track.BufferSize; i++ {
+				track.FloatBuffer.Data[i] = track.FloatBuffer.Data[i]*math.Pow(2, float64(bitDepth-track.BitDepth))
 			}
 		}
 	}
@@ -84,19 +84,19 @@ func ScaleFloatBuffers(tracks []*TrackInfo, bitDepth int) {
 func ReadWavsToBuffers(wavDecs []*wav.Decoder, tracks []*TrackInfo) (mixBufferSize int) {
 	var err error
 	for i, track := range tracks {
-		if track.bufferSize == 0 {continue}
-		if track.bufferSize != -1 && track.bufferSize < cap(track.intBuffer.Data) {
-			track.bufferSize = 0
+		if track.BufferSize == 0 {continue}
+		if track.BufferSize != -1 && track.BufferSize < cap(track.IntBuffer.Data) {
+			track.BufferSize = 0
 			continue
 		}
-		track.bufferSize, err = wavDecs[i].PCMBuffer(track.intBuffer)
-		if track.bufferSize == 0 || err != nil {continue}
-		if track.bufferSize < cap(track.intBuffer.Data) {
-			track.intBuffer.Data = track.intBuffer.Data[:track.bufferSize]
-			track.floatBuffer.Data = track.floatBuffer.Data[:track.bufferSize]
+		track.BufferSize, err = wavDecs[i].PCMBuffer(track.IntBuffer)
+		if track.BufferSize == 0 || err != nil {continue}
+		if track.BufferSize < cap(track.IntBuffer.Data) {
+			track.IntBuffer.Data = track.IntBuffer.Data[:track.BufferSize]
+			track.FloatBuffer.Data = track.FloatBuffer.Data[:track.BufferSize]
 		}
-		track.floatBuffer = track.intBuffer.AsFloatBuffer()
-		if track.bufferSize > mixBufferSize {mixBufferSize = track.bufferSize}
+		track.FloatBuffer = track.IntBuffer.AsFloatBuffer()
+		if track.BufferSize > mixBufferSize {mixBufferSize = track.BufferSize}
 	}
 	return mixBufferSize
 }
