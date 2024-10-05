@@ -27,28 +27,16 @@ func NewTrackInfo(format *audio.Format, bitDepth, bufferCap int) (newTrack *Trac
 	}
 }
 
-// Function to read PCM data from a wav decoder into a TrackInfo's buffers, set bufferSize, and return length of longest buffer
-func ReadWavsToBuffers(wavDecs []*wav.Decoder, tracks []*TrackInfo) (mixBufferSize int) {
-	var err error
-	for i, track := range tracks {
-		if track.bufferSize == 0 {continue}
-		if track.bufferSize != -1 && track.bufferSize < cap(track.intBuffer.Data) {
-			track.bufferSize = 0
-			continue
-		}
-		track.bufferSize, err = wavDecs[i].PCMBuffer(track.intBuffer)
-		if track.bufferSize == 0 || err != nil {continue}
-		if track.bufferSize < cap(track.intBuffer.Data) {
-			track.intBuffer.Data = track.intBuffer.Data[:track.bufferSize]
-			track.floatBuffer.Data = track.floatBuffer.Data[:track.bufferSize]
-		}
-		track.floatBuffer = track.intBuffer.AsFloatBuffer()
-		if track.bufferSize > mixBufferSize {mixBufferSize = track.bufferSize}
-	}
+// Function to mix TrackInfo float buffers to a provided mix float buffer, performing common scaling and attenuation operations as needed, and return length of longest buffer
+func Mix(mixTrack *audio.FloatBuffer, sourceTracks []*TrackInfo, bitDepth int, attenuate bool) (mixBufferSize int) {
+	ScaleFloatBuffers(sourceTracks, bitDepth)
+	mixBufferSize = SumFloatBuffers(mixTrack, sourceTracks)
+	if attenuate {AttenuateFloatBuffer(mixTrack, len(sourceTracks), mixBufferSize)}
+	if mixBufferSize < cap(mixTrack.Data) {mixTrack.Data = mixTrack.Data[:mixBufferSize]}
 	return mixBufferSize
 }
 
-// Function to sum buffers and return buffer size of mix, equal to length of longest buffer
+// Function to sum TrackInfo float buffers to a mix float buffer and return buffer size of mix, equal to length of longest buffer
 func SumFloatBuffers(mixTrack *audio.FloatBuffer, sourceTracks []*TrackInfo) (mixBufferSize int) {
 	for _, sourceTrack := range sourceTracks {
 		if sourceTrack.bufferSize == 0 {continue}
@@ -82,6 +70,27 @@ func ScaleFloatBuffers(tracks []*TrackInfo, bitDepth int) {
 	}
 }
 
+// Function to read PCM data from a wav decoder into a TrackInfo's buffers, set bufferSize, and return length of longest buffer
+func ReadWavsToBuffers(wavDecs []*wav.Decoder, tracks []*TrackInfo) (mixBufferSize int) {
+	var err error
+	for i, track := range tracks {
+		if track.bufferSize == 0 {continue}
+		if track.bufferSize != -1 && track.bufferSize < cap(track.intBuffer.Data) {
+			track.bufferSize = 0
+			continue
+		}
+		track.bufferSize, err = wavDecs[i].PCMBuffer(track.intBuffer)
+		if track.bufferSize == 0 || err != nil {continue}
+		if track.bufferSize < cap(track.intBuffer.Data) {
+			track.intBuffer.Data = track.intBuffer.Data[:track.bufferSize]
+			track.floatBuffer.Data = track.floatBuffer.Data[:track.bufferSize]
+		}
+		track.floatBuffer = track.intBuffer.AsFloatBuffer()
+		if track.bufferSize > mixBufferSize {mixBufferSize = track.bufferSize}
+	}
+	return mixBufferSize
+}
+
 // Function to mix wav decoders and write mix to output
 func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, attenuate bool) (error) {
 
@@ -91,8 +100,7 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 		numChans int
 	)
 
-	numTracks := len(wavDecs)
-	index := make([]*TrackInfo, numTracks)
+	index := make([]*TrackInfo, len(wavDecs))
 	bufferCap := 8000
 
 	// Validate tracks, populate index and convenience variables
@@ -132,10 +140,7 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 	for {
 		mixBufferSize := ReadWavsToBuffers(wavDecs, index)
 		if mixBufferSize == 0 {break}
-		ScaleFloatBuffers(index, bitDepth)
-		SumFloatBuffers(mixFloatBuffer, index)
-		if attenuate {AttenuateFloatBuffer(mixFloatBuffer, numTracks, mixBufferSize)}
-		if mixBufferSize < bufferCap {mixFloatBuffer.Data = mixFloatBuffer.Data[:mixBufferSize]}
+		Mix(mixFloatBuffer, index, bitDepth, attenuate)
 		wavEnc.Write(mixFloatBuffer.AsIntBuffer())
 		if mixBufferSize < bufferCap {break}
 	}
