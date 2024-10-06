@@ -18,22 +18,12 @@ type TrackInfo struct {
 }
 
 // Function to create a new TrackInfo
-func NewTrack(format *audio.Format, bitDepth, bufferCap int) (newTrack *TrackInfo) {
+func newTrack(format *audio.Format, bitDepth, bufferCap int) (newTrack *TrackInfo) {
 	return &TrackInfo{
 		BitDepth: bitDepth,
 		BufferSize: -1,
 		IntBuffer: &audio.IntBuffer{Format: format, Data: make([]int, bufferCap)},
 		FloatBuffer: &audio.FloatBuffer{Format: format, Data: make([]float64, bufferCap)},
-	}
-}
-
-// Function to create a new TrackInfo from provided buffers
-func NewTrackFromBuffers(intBuffer *audio.IntBuffer, floatBuffer *audio.FloatBuffer, bitDepth int) (newTrack *TrackInfo) {
-	return &TrackInfo{
-		BitDepth: bitDepth,
-		BufferSize: -1,
-		IntBuffer: intBuffer,
-		FloatBuffer: floatBuffer,
 	}
 }
 
@@ -130,7 +120,7 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, bitDepth int, atten
 		} else if sampleRate != int(wavDec.SampleRate) {return errors.New("Sample rate mismatch")
 		} else if numChans != int(wavDec.NumChans) {return errors.New("Channel layout mismatch")}
 
-		index[i] = NewTrack(format, int(wavDec.BitDepth), bufferCap)
+		index[i] = newTrack(format, int(wavDec.BitDepth), bufferCap)
 	}
 
 	// Initialize wav encoder
