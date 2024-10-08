@@ -14,7 +14,8 @@ func help(err int) {
 		"Usage: mixerInG [options...]\n"+
 		" -i <file>      Input WAV file (must be used for each input, for at least 2 inputs)\n"+
 		" -o <file>      Destination WAV file of mix\n"+
-		" -b <number>    Bit depth of mix WAV file (16|24|32)\n",
+		" -b <number>    Bit depth of mix WAV file (16|24|32)\n"+
+		" -a             Attenuate linearly to prevent clipping, dividing by number of tracks mixed\n",
 
 	)
 	os.Exit(err)
@@ -30,6 +31,7 @@ func main() {
 		files []*string
 		wavOutName *string
 		bitDepth int
+		attenuate bool
 		err error
 	)
 
@@ -55,22 +57,26 @@ func main() {
 					bitDepth != 24 &&
 					bitDepth != 32) {help(4)}
 					continue
+				case "a":
+					if attenuate {help(5)}
+					attenuate = true
+					continue
 				case "":
-					if wavOutName != nil {help(5)}
+					if wavOutName != nil {help(6)}
 					wavOutName = &os.Args[i]
 					continue
 				default:
-					help(6)
+					help(7)
 			}
 		} else {
-			if wavOutName != nil {help(7)}
+			if wavOutName != nil {help(8)}
 			wavOutName = &os.Args[i]
 			continue
 		}
 	}
 
 	// Ensure at least 2 inputs
-	if len(files) < 2 {help(8)}
+	if len(files) < 2 {help(9)}
 
 	// Set default output as standard output if no output given as argument
 	if wavOutName == nil {
@@ -83,7 +89,7 @@ func main() {
 
 	// Mix files and write mix to output
 	if *wavOutName != "-" {os.Stdout.WriteString("Writing mix to "+*wavOutName+"...\n")}
-	err = mixerInG.MixWavFiles(files, wavOutName, bitDepth, false)
+	err = mixerInG.MixWavFiles(files, wavOutName, bitDepth, attenuate)
 	if err != nil {os.Stdout.WriteString(err.Error()+"\n")}
 
 }
