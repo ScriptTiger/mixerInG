@@ -23,8 +23,8 @@ Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
  `-i <file>`           | Input WAV file (must be used for each input, for at least 2 inputs)
  `-o <file>`           | Destination WAV file of mix
- `-b <number>`         | Bit depth of mix WAV file (16\|24\|32)
- `-a`                  | Attenuate linearly to prevent clipping, dividing by number of tracks mixed
+ `-bits <number>`      | Bit depth of mix WAV file (16\|24\|32)
+ `-attenuate`          | Attenuate linearly to prevent clipping, dividing by number of tracks mixed
 
 If no output file is given, or `-` is given, the mix is written to standard output with a bit depth of 24 and can be piped into VLC or other compatible media applications.
 

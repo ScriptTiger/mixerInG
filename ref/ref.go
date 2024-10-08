@@ -14,8 +14,8 @@ func help(err int) {
 		"Usage: mixerInG [options...]\n"+
 		" -i <file>      Input WAV file (must be used for each input, for at least 2 inputs)\n"+
 		" -o <file>      Destination WAV file of mix\n"+
-		" -b <number>    Bit depth of mix WAV file (16|24|32)\n"+
-		" -a             Attenuate linearly to prevent clipping, dividing by number of tracks mixed\n",
+		" -bits <number> Bit depth of mix WAV file (16|24|32)\n"+
+		" -attenuate     Attenuate linearly to prevent clipping, dividing by number of tracks mixed\n",
 
 	)
 	os.Exit(err)
@@ -48,7 +48,7 @@ func main() {
 					i++
 					wavOutName = &os.Args[i]
 					continue
-				case "b":
+				case "bits":
 					if bitDepth != 0 {help(3)}
 					i++
 					bitDepth, err = strconv.Atoi(os.Args[i])
@@ -57,7 +57,7 @@ func main() {
 					bitDepth != 24 &&
 					bitDepth != 32) {help(4)}
 					continue
-				case "a":
+				case "attenuate":
 					if attenuate {help(5)}
 					attenuate = true
 					continue
