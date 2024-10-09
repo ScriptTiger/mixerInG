@@ -1,0 +1,7 @@
+github.com/ScriptTiger/wav v0.0.0-20241009130152-f2b055a7031c h1:VVBkoMERw8nWSNPCXmnK/rA+hKURU7+2gomWDWleLi4=
+github.com/ScriptTiger/wav v0.0.0-20241009130152-f2b055a7031c/go.mod h1:bp2870jtp/ixAJLIOdShBfl1WpyLGDZ57jnVWMgkgIc=
+github.com/go-audio/aiff v1.0.0/go.mod h1:Kazp+9JR/Y1ITCXaDlO6OIIOrz6eGGAn+dGT04V4HPM=
+github.com/go-audio/audio v1.0.0 h1:zS9vebldgbQqktK4H0lUqWrG8P0NxCJVqcj7ZpNnwd4=
+github.com/go-audio/audio v1.0.0/go.mod h1:6uAu0+H2lHkwdGsAY+j2wHPNPpPoeg5AaEFh9FlA+Zs=
+github.com/go-audio/riff v1.0.0 h1:d8iCGbDvox9BfLagY94fBynxSPHO80LmZCaOsmKxokA=
+github.com/go-audio/riff v1.0.0/go.mod h1:l3cQwc85y79NQFCRB7TiPoNiaijp6q8Z0Uv38rVG498=
