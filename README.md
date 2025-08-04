@@ -33,8 +33,8 @@ Input options (must precede target input):
 
 Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
-'-gain <number>'       | Make gain adjustment
-'-invert'              | Invert polarity
+`-gain <number>`       | Make gain adjustment
+`-invert`              | Invert polarity
 
 If no output file is given, or `-` is given, the mix is written to standard output with a bit depth of 24 and can be piped into FFmpeg, FFplay, VLC, or other compatible media applications.
 
