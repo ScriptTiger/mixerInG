@@ -21,16 +21,28 @@ Usage: `mixerInG [options...]`
 
 Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
- `-i <file>`           | Input WAV file (must be used for each input, for at least 2 inputs)
+ `-i <file>`           | Input WAV file (must be used for each input)
  `-o <file>`           | Destination WAV file of mix
  `-bits <number>`      | Bit depth of mix WAV file (16\|24\|32)
  `-attenuate`          | Attenuate linearly to prevent clipping, dividing by number of tracks mixed
+ `-nowrite`            | Do not write mix to file
+ `-nostats`            | Do not collect stats
+ `-buffer <number>`    | Number of samples to buffer per track
+
+Input options (must precede target input):
+
+Argument               | Description
+-----------------------|--------------------------------------------------------------------------------------------------------
+'-gain <number>'       | Make gain adjustment
+'-invert'              | Invert polarity
 
 If no output file is given, or `-` is given, the mix is written to standard output with a bit depth of 24 and can be piped into FFmpeg, FFplay, VLC, or other compatible media applications.
 
 Attenuating linearly is best done when going from source tracks of lower bit depths to mixes of higher bit depths to diminish resolution loss. This will result in an output mix which will always be perceptually "quieter," but still retain better resolution than if it were a mix of the same or lower bit depth as the original tracks. This is because the mix itself, and attenuation division, is performed in 64-bit floating point and results in trailing digits behind a decimal which will be removed when the mix track is truncated to its destination bit depth, of 32 bits or lower, signed and not floating point. So, mixing to higher bit depths than the original will scale some of that data which would otherwise be behind the decimal to in front of the decimal and preserve it in the resulting mix.
 
 However, it's also important to note that attenuating linearly is only recommended when mixing incohesive tracks, such as more raw and experimental tracks which were not previously mastered together to prevent clipping in the mix already. By not attenuating at all, there will never be any trailing digits behind a decimal since there would be no division occurring, unless scaling down from source tracks of higher bit depths to mixes of lower bit depths, which should also be avoided.
+
+The gain input option can either be given as a gain factor or dB, where gain factor is the default input. If a gain factor is given, 0 will mute the track, less than 1 will reduce the level, and greater than 1 will increase the level. If dB is given, the dB suffix must be used (e.g. "-3dB" to reduce the level by 3dB).
 
 # Other projects using Mixer in G
 
