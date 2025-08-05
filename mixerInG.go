@@ -140,7 +140,7 @@ func MixWavDecoders(wavDecs []*wav.Decoder, wavOut *os.File, fx []*TrackFX, bitD
 		if wavDec.WavAudioFormat == 3 {return errors.New("IEEE float is not currently supported")}
 		if wavDec.WavAudioFormat == 6 {return errors.New("A-law is not currently supported")}
 		if wavDec.WavAudioFormat == 7 {return errors.New("µ-law is not currently supported")}
-		if wavDec.WavAudioFormat != 1 && wavDec.WavAudioFormat != 0xFFFE {return errors.New("Only PCM is currently supported")}
+		if wavDec.WavAudioFormat != 1 && wavDec.WavAudioFormat != 0xFFFE {return errors.New("Only signed PCM is currently supported")}
 
 		if i == 0 {
 			format = wavDec.Format()
