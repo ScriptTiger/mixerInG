@@ -173,8 +173,9 @@ func main() {
 					"----- Stats for \""+*file+"\" -----\n"+
 					strconv.FormatFloat(stats[i].RMSdB, 'f', -1, 64)+"dB RMS.\n"+
 					strconv.FormatFloat(stats[i].PeakdB, 'f', -1, 64)+"dB peak.\n"+
-					strconv.FormatUint(stats[i].ClippedCount, 10)+" clipped samples.\n"+
-					strconv.FormatUint(stats[i].SampleCount, 10)+" total samples.\n",
+					strconv.FormatUint(stats[i].PreClippedCount, 10)+" samples likely pre-clipped.\n"+
+					strconv.FormatUint(stats[i].ClippedCount, 10)+" samples clipped.\n"+
+					strconv.FormatUint(stats[i].SampleCount, 10)+" samples total.\n",
 				)
 			}
 			mix := len(stats)-1
@@ -182,8 +183,8 @@ func main() {
 				"----- Stats for mix -----\n"+
 				strconv.FormatFloat(stats[mix].RMSdB, 'f', -1, 64)+"dB RMS.\n"+
 				strconv.FormatFloat(stats[mix].PeakdB, 'f', -1, 64)+"dB peak.\n"+
-				strconv.FormatUint(stats[mix].ClippedCount, 10)+" clipped samples.\n"+
-				strconv.FormatUint(stats[mix].SampleCount, 10)+" total samples.\n",
+				strconv.FormatUint(stats[mix].ClippedCount, 10)+" samples clipped.\n"+
+				strconv.FormatUint(stats[mix].SampleCount, 10)+" samples total.\n",
 			)
 		}
 	}

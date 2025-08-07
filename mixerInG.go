@@ -25,6 +25,7 @@ type TrackFX struct {
 
 // Structure to hold stats
 type TrackStats struct {
+	PreClippedCount uint64
 	SampleCount uint64
 	ClippedCount uint64
 	Peak float64
@@ -33,8 +34,23 @@ type TrackStats struct {
 	RMSdB float64
 }
 
+func GetPCMRange(bitDepth int) (max, min float64) {
+	if bitDepth == 16 {
+		max = 32767
+		min = -32768
+	} else if bitDepth == 24 {
+		max = 8388607
+		min = -8388608
+	} else if bitDepth == 32 {
+		max = 2147483647
+		min = -2147483648
+	}
+	return
+}
+
 // Function to mix TrackInfo float buffers to a provided mix float buffer, performing FX, scaling, and attenuation operations as needed, and return length of longest buffer
 func Mix(mixTrack *audio.FloatBuffer, sourceTracks []*TrackInfo, fx []*TrackFX, bitDepth int, attenuate bool, stats []*TrackStats) (mixBufferSize int) {
+	if stats != nil {checkPreClipping(stats, sourceTracks)}
 	ScaleFloatBuffers(sourceTracks, bitDepth)
 	if fx != nil {FXFloatBuffers(sourceTracks, fx)}
 	mixBufferSize = SumFloatBuffers(mixTrack, sourceTracks)
@@ -224,20 +240,22 @@ func newTrack(format *audio.Format, bitDepth, bufferCap int) (newTrack *TrackInf
 	}
 }
 
+// Function to check for pre-clipping
+func checkPreClipping(stats []*TrackStats, sourceTracks []*TrackInfo) {
+	for t, track := range sourceTracks {
+		if track.BufferSize != 0 {
+			max, min := GetPCMRange(track.BitDepth)
+			for i := 0; i < track.BufferSize; i++ {
+				sample := track.FloatBuffer.Data[i]
+				if sample == max || sample == min {(*stats[t]).PreClippedCount++}
+			}
+		}
+	}
+}
+
 // Function to update stats
 func updateTrackStats(stats []*TrackStats, bitDepth int, sourceTracks []*TrackInfo, mixTrack *audio.FloatBuffer, mixBufferSize int) {
-	var max float64
-	var min float64
-	if bitDepth == 16 {
-		max = 32767
-		min = -32768
-	} else if bitDepth == 24 {
-		max = 8388607
-		min = -8388608
-	} else if bitDepth == 32 {
-		max = 2147483647
-		min = -2147483648
-	}
+	max, min := GetPCMRange(bitDepth)
 	for t, track := range sourceTracks {
 		if track.BufferSize != 0 {
 			for i := 0; i < track.BufferSize; i++ {
