@@ -34,16 +34,19 @@ type TrackStats struct {
 	RMSdB float64
 }
 
-func GetPCMRange(bitDepth int) (max, min float64) {
+func GetPCMRange(bitDepth int) (max, min, ref float64) {
 	if bitDepth == 16 {
 		max = 32767
 		min = -32768
+		ref = 32768
 	} else if bitDepth == 24 {
 		max = 8388607
 		min = -8388608
+		ref = 8388608
 	} else if bitDepth == 32 {
 		max = 2147483647
 		min = -2147483648
+		ref = 2147483648
 	}
 	return
 }
@@ -244,7 +247,7 @@ func newTrack(format *audio.Format, bitDepth, bufferCap int) (newTrack *TrackInf
 func checkPreClipping(stats []*TrackStats, sourceTracks []*TrackInfo) {
 	for t, track := range sourceTracks {
 		if track.BufferSize != 0 {
-			max, min := GetPCMRange(track.BitDepth)
+			max, min, _ := GetPCMRange(track.BitDepth)
 			for i := 0; i < track.BufferSize; i++ {
 				sample := track.FloatBuffer.Data[i]
 				if sample == max || sample == min {(*stats[t]).PreClippedCount++}
@@ -255,7 +258,7 @@ func checkPreClipping(stats []*TrackStats, sourceTracks []*TrackInfo) {
 
 // Function to update stats
 func updateTrackStats(stats []*TrackStats, bitDepth int, sourceTracks []*TrackInfo, mixTrack *audio.FloatBuffer, mixBufferSize int) {
-	max, min := GetPCMRange(bitDepth)
+	max, min, ref := GetPCMRange(bitDepth)
 	for t, track := range sourceTracks {
 		if track.BufferSize != 0 {
 			for i := 0; i < track.BufferSize; i++ {
@@ -265,9 +268,9 @@ func updateTrackStats(stats []*TrackStats, bitDepth int, sourceTracks []*TrackIn
 				if sample > max || sample < min {(*stats[t]).ClippedCount++}
 				(*stats[t]).SumOfSquares += sample*sample
 			}
-			(*stats[t]).PeakdB = 20*math.Log10(stats[t].Peak/max)
+			(*stats[t]).PeakdB = 20*math.Log10(stats[t].Peak/ref)
 			(*stats[t]).SampleCount += uint64(track.BufferSize)
-			(*stats[t]).RMSdB = 20*math.Log10(math.Sqrt((*stats[t]).SumOfSquares/float64((*stats[t]).SampleCount))/max)
+			(*stats[t]).RMSdB = 20*math.Log10(math.Sqrt((*stats[t]).SumOfSquares/float64((*stats[t]).SampleCount))/ref)
 		}
 	}
 	mix := len(stats)-1
@@ -278,7 +281,7 @@ func updateTrackStats(stats []*TrackStats, bitDepth int, sourceTracks []*TrackIn
 		if sample > max || sample < min {(*stats[mix]).ClippedCount++}
 		(*stats[mix]).SumOfSquares += sample*sample
 	}
-	(*stats[mix]).PeakdB = 20*math.Log10(stats[mix].Peak/max)
+	(*stats[mix]).PeakdB = 20*math.Log10(stats[mix].Peak/ref)
 	(*stats[mix]).SampleCount += uint64(mixBufferSize)
-	(*stats[mix]).RMSdB = 20*math.Log10(math.Sqrt((*stats[mix]).SumOfSquares/float64((*stats[mix]).SampleCount))/max)
+	(*stats[mix]).RMSdB = 20*math.Log10(math.Sqrt((*stats[mix]).SumOfSquares/float64((*stats[mix]).SampleCount))/ref)
 }
